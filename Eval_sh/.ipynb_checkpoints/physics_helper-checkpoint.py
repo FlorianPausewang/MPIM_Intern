@@ -10,12 +10,14 @@ import konrad
 
 
 
-def sh2vmr(sh):
+def sh2vmr(sh): #Wrong
     sh=sh
-    return sh/(1-sh)
+    vmr=sh/(1-sh)
+    return vmr#
 
 def vmr2sh(vmr):
     vmr=vmr
+    
     return vmr/(1+vmr)
 
 def sh2rh_1D(ds):
@@ -80,8 +82,8 @@ def saturation_pressure_3D(temperature):
     #e_eq = e_eq_ice.where(is_ice,e_eq_ice)
     #e_eq = e_eq_water.where(is_water,e_eq_water)
     
-    e_eq = e_eq.where(~is_ice).where(~is_water)
-    e_eq = e_eq.combine_first(e_eq_ice).combine_first(e_eq_water)
+    e_eq = e_eq.where(is_ice,e_eq_ice).where(is_water,e_eq_water)
+    #e_eq = e_eq.combine_first().combine_first()
     
     return e_eq
 
@@ -89,22 +91,29 @@ def saturation_pressure_3D(temperature):
 def sh2rh_3D(ds):
     temp=ds.T+273.15
     p=temp['p']*100
-    vmr= sh2vmr(ds.SH)
+    vmr= typ.specific_humidity2vmr(ds.SH)#sh2vmr(ds.SH)
     e=saturation_pressure_3D(temp)
     return vmr*p/e.to_numpy()
+
+def sh2rh_3D_typhon(ds):
+    temp=ds.T+273.15
+    p=temp['p']*100
+    sh=ds.SH
+    vmr=typ.specific_humidity2vmr(sh)
+    return typ.vmr2relative_humidity(vmr, p, temp)
 
 
 def add_rh_calc_in_intervals(ds,dataloc):
     
     dates=ds.time.to_numpy()
-    interval=12 #month
+    interval=24 #month 12
     print(len(dates)/interval)
     for i in range(int(len(dates)/interval)):
         print(str(i))
         start_date=dates[interval*i]
         end_date=dates[interval*(i+1)-1]
         
-        tmp=sh2rh_3D(ds.sel(time=slice(start_date, end_date)))
+        tmp=sh2rh_3D_typhon(ds.sel(time=slice(start_date, end_date))) 
         if i==0:
             da = tmp
         else:

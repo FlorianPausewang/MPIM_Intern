@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 from dask.diagnostics import ProgressBar
-#import dask.dataframe as dask
+import dask.dataframe as dask
 import os
 import dask as dsk
 #=====================================================
@@ -17,13 +17,26 @@ class Dataset:
         self.chunks = {'time': 'auto', 'lon': 'auto', 'lat': 'auto'}#"time": 10, "p": 42, "lon": 288, "lat": 144}
         self.loaddata()
     
-    # =======================================================================
-    # load data routine
+    
+    """
+    #load data
+    def loaddata(self):
+        if self.setname=='MERRA':
+            self.loaddata()
+        elif self.setname=='MERRA2':
+            self.loaddata()
+        elif self.setname=='JRA-55':
+            self.loaddata()
+        else:
+            raise Exception("Sorry, notexisting Setname")"""
+    
+    #load data routine for Merra 
     def loaddata(self):
         print("Loading full dataset "+ self.setname)
+        #with dsk.config.set(**{'array.slicing.split_large_chunks': True}):
         with ProgressBar():
-            self.ds = xr.open_mfdataset(self.files,engine='netcdf4',
-                                   ) #combine='by_coords', chunks=self.chunks, parallel=True,
+            self.ds = xr.open_mfdataset(self.files,parallel=True,engine='netcdf4',
+                               ) #combine='by_coords', chunks=self.chunks, 
         #print(self.ds)
         if self.setname=="TOPO":
             rename_dict = {}
@@ -39,18 +52,18 @@ class Dataset:
             self.ds=self.ds.rename(rename_dict)
             #ds.RH.attrs["units"] = '%'  #To rename Units
         elif self.setname=="MERRA2" and self.frequency == 'monthly':
-            rename_dict = {'lev': 'p', 'RH': 'RH_model', 'T': 'T','QV':"SH"}
+            rename_dict = {'lev': 'p', 'RH': 'RH', 'T': 'T','PS':'PS'}
             self.ds=self.ds.rename(rename_dict)
         elif self.setname=="MERRA2_2D" and self.frequency == 'monthly':
             rename_dict = {}
             self.ds=self.ds.rename(rename_dict)
         elif self.setname=='JRA-55' and self.frequency == 'monthly':
-            rename_dict = {'plev': 'p', 'r': 'RH_model', 't': 'T','q':"SH"}
+            rename_dict = {'plev': 'p', 'r': 'RH', 't': 'T'}
             self.ds=self.ds.rename(rename_dict)
             self.ds=self.ds.isel(p=slice(None, None, -1))  # Reverse order of pressurelevels
             self.ds=self.ds.isel(lat=slice(None, None, -1))  # Reverse order of pressurelevels
-            self.ds['RH_model']=0.01 *self.ds.RH_model  #Convert to unitless
-            self.ds.RH_model.attrs["units"] = ''  #To rename Units
+            self.ds['RH']=0.01 *self.ds.RH  #Convert to unitless
+            self.ds.RH.attrs["units"] = ''  #To rename Units
             self.ds['p']=0.01 *self.ds.p  #Convert to hPa
             self.ds.p.attrs["units"] = 'hPa'  #To rename Units
             
@@ -142,4 +155,11 @@ class Dataset:
         del self.ds
     '''
 
+    
+
+def loadsimpledata(file):
+    ds = xr.open_dataset(file,engine='netcdf4',
+                               ) #combine='by_coords', chunks=self.chunks, 
+        
+    return ds
     
